@@ -12,7 +12,18 @@ def load_image(name):
     return image
 
 
-class Entity(pygame.sprite.Sprite):
+class SpriteObject(pygame.sprite.Sprite):
+    def __init__(self, *group):
+        super().__init__(*group)
+
+    def vector_move(self, x, y):
+        self.rect.x += x
+        self.rect.y += y
+        print(self.rect.x, self.rect.y)
+
+
+
+class Entity(SpriteObject):
     def __init__(self, *group, image='entities/error.png', hp: int = 100, speed: int = 30, acceleration: float = 1.5):
         super().__init__(*group)
         self.hp = hp
@@ -39,9 +50,9 @@ class Player(Entity):
         self.rect.y = 250
         self.stack = set()
 
-    def add_action(self, action):
-        if action.type in keys.player_keys_list:
-            self.stack.add(keys.player_keys[action.type])
+    def add_to_stack(self, action):
+        if action in keys.player_keys_list:
+            self.stack.add(keys.player_keys[action])
             if len(self.stack & {'UP', 'DOWN'}) == 2:
                 self.stack.remove('UP')
                 self.stack.remove('DOWN')
@@ -49,15 +60,30 @@ class Player(Entity):
                 self.stack.remove('RIGHT')
                 self.stack.remove('LEFT')
 
-    def update(self, *keys):
-        for action in self.stack:
-            if action in Player.MOVE:
-                x, y = self.center()
-                xm, ym = pygame.mouse.get_pos()
-                delta_x, delta_y = x - xm, y - ym  # координаты мыши относительно игрока
-                c = (x - xm) ** 2 + (y - ym) ** 2  # получаю расстояние между курсором и игроком
-                c /= self.speed                    # получаю коофициент подобия
-                # TODO Доделать логику. Глеб, не трогай, первую версию я склепаю сам
+    def update(self):
+        key_state = pygame.key.get_pressed()
+        x, y = self.center()
+        xm, ym = pygame.mouse.get_pos()
+        delta_x, delta_y = x - xm, y - ym                      # координаты мыши относительно игрока
+        if delta_y == delta_x == 0:
+            delta_y = delta_x = 1
+        c = (delta_x ** 2 + delta_y ** 2) ** 0.5               # получаю расстояние между курсором и игроком
+        c = self.speed / c                                     # получаю коофициент подобия
+        x_move, y_move = int(delta_x * c), int(delta_y * c)
+        if delta_y == delta_x == 0:
+            x_move = y_move = 0
+        if key_state[pygame.K_w]:
+            for sprite in self.world.sprites():
+                sprite.vector_move(x_move, y_move)
+        elif key_state[pygame.K_s]:
+            pass
+        if key_state[pygame.K_a]:
+            pass
+        elif key_state[pygame.K_d]:
+            pass
+        # TODO Допилить остальные варианты
+        # TODO Выпилить stack из Player и всё прочее ненужное (Возможно, весь стек)
+        # TODO Почитать документацию
 
         self.stack.clear()
 
@@ -76,7 +102,7 @@ class Enemy(Entity):
     pass
 
 
-class BackGround(pygame.sprite.Sprite):
+class BackGround(SpriteObject):
     def __init__(self, *group):
         super().__init__(*group)
         self.group = group
