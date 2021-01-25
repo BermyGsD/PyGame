@@ -84,4 +84,3 @@ class BackGround(pygame.sprite.Sprite):
     def setup(self, img):
         self.image = load_image(img)
         self.rect = self.image.get_rect()
-
