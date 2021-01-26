@@ -34,7 +34,7 @@ class Entity(SpriteObject):
         self.speed = speed                  # Максимальная длина шага
         self.acceleration = acceleration    # Ускорение при беге
         self.images = images                # список путей к спрайтам
-        self.image = self.images[0]
+        self.image = load_image(self.images[0])
         self.rect = self.image.get_rect()
 
     def change_sprite(self):
