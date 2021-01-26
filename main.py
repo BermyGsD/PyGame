@@ -31,8 +31,7 @@ if __name__ == '__main__':
                 exit(0)
 
             if e_type == pygame.KEYDOWN:
-                if event.key in keys.game_keys_list:
-                    game.add_to_stack(event.key)
+                pass
 
             elif e_type == UPDATE_SCREEN_EVENT:
                 update_screen = True

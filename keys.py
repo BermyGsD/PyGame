@@ -2,15 +2,15 @@ import pygame
 
 # Клавиши для игрока
 player_keys = {
-               pygame.K_w: 'UP',
-               pygame.K_s: 'DOWN',
-               pygame.K_a: 'LEFT',
-               pygame.K_d: 'RIGHT'
+               'UP': pygame.K_w,
+               'DOWN': pygame.K_s,
+               'LEFT': pygame.K_a,
+               'RIGHT': pygame.K_d
                }
-player_keys_list = player_keys.keys()
+player_keys_list = player_keys.values()
 
 # клавиши для игры
 game_keys = {
-             pygame.K_ESCAPE: 'PAUSE'
-             } | player_keys  # Новая фича, не робит на старых версиях
+             'PAUSE': pygame.K_ESCAPE
+             }
 game_keys_list = game_keys.keys()

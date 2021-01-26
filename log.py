@@ -4,3 +4,4 @@ def logging(function):
         print(function.__name__, 'in:', (*args, kwargs), 'return: ', a)
         return a
     return decorated_function
+
