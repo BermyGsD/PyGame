@@ -49,7 +49,7 @@ class Entity(SpriteObject):
         self.rect = self.image.get_rect()
 
     def change_sprite(self):
-        """Класс для изменения картинки на следующую. Берёт следующий по счёту спрайт из self.image"""
+        """Метод для изменения картинки на следующую. Берёт следующий по счёту спрайт из self.image"""
         if len(self.images) - 1 <= self.current:
             self.current = -1
         self.current += 1
