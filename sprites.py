@@ -61,10 +61,8 @@ class Entity(SpriteObject):
         self.radius = 13                        # Радиус кружочка для столкновений
         self.update_sprite()
 
-    def change_sprite(self, current=None):
-        """
-        :param current: Указать, какое по счёту изображение поставить
-        """
+    def change_sprite(self):
+        """Метод для изменения картинки на следующую. Берёт следующий по счёту спрайт из self.image"""
         if len(self.images) - 1 <= self.current:
             self.current = -1
         if current:
