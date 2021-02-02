@@ -28,6 +28,7 @@ if __name__ == '__main__':
             e_type = event.type
 
             if e_type == pygame.QUIT:
+                print('aaa')
                 exit(0)
 
             if e_type == pygame.KEYDOWN:
@@ -42,6 +43,7 @@ if __name__ == '__main__':
         if update_screen:
             SCREEN.fill((0, 0, 0))
             game.all_sprites.draw(SCREEN)
+            game.gui.update()
             pygame.display.flip()
             update_screen = False
         if update_game:
