@@ -1,12 +1,11 @@
 import pygame
 from game import Game
 import keys
+from constant import *
 
 
 if __name__ == '__main__':
     pygame.init()
-    SIZE = 800, 600
-    SCREEN = pygame.display.set_mode(SIZE)
     pygame.display.flip()
     game = Game(SCREEN)
 
@@ -22,12 +21,14 @@ if __name__ == '__main__':
     update_screen = False  # Обновление изображения в следующей итерации
     update_game = False    # Обновление игры в следующей итерации
     pause = False          # Внезапно, пауза
+    # pygame.mouse.set_visible(False)
 
     while game.running:
         for event in pygame.event.get():
             e_type = event.type
 
             if e_type == pygame.QUIT:
+                print('aaa')
                 exit(0)
 
             if e_type == pygame.KEYDOWN:
@@ -40,10 +41,12 @@ if __name__ == '__main__':
                 update_game = True
 
         if update_screen:
+            ALL_SPRITES.update()
             SCREEN.fill((0, 0, 0))
-            game.all_sprites.draw(SCREEN)
+            ALL_SPRITES.draw(SCREEN)
+            game.gui.update()
             pygame.display.flip()
             update_screen = False
-        if update_game:
+        """if update_game:
             game.update()
-            update_game = False
+            update_game = False"""

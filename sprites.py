@@ -3,25 +3,24 @@ from os import path
 import keys
 from math import sin, cos, asin, degrees, radians
 from log import logging
+from random import random
+from constant import *
 
 
 @logging
-def load_image(name):
+def load_image(name='images/error.png', angle=0.0):
     if not path.isfile(name):
         print(f"Файл с изображением '{name}' не найден")
         raise ValueError(f'Нет файла по пути {name}')
     image = pygame.image.load(name)
+    image = pygame.transform.rotate(image, angle)
     image.convert_alpha()
     return image
 
 
 class SpriteObject(pygame.sprite.Sprite):
-    def __init__(self, *group):
-        super().__init__(*group)
-
-    def vector_move(self, x, y):
-        self.rect.x += x
-        self.rect.y += y
+    def __init__(self):
+        super().__init__(WORLD, ALL_SPRITES)
 
     def move_center_to(self, x, y):
         """Передвигает центр объекта в x, y"""
@@ -32,11 +31,99 @@ class SpriteObject(pygame.sprite.Sprite):
         self.rect.x += x
         self.rect.y += y
 
+    def load_image(self, image: pygame.surface, angle: float = 0):
+        """
+        Загружает surface и меняет rect
+        :param image:
+        :param angle:
+        :return: None
+        """
+        self.image = pygame.transform.rotate(image, angle)
+        self.rect = self.image.get_rect()
+
+    def collide(self, group: pygame.sprite.Group):
+        return bool(pygame.sprite.spritecollide(self, group, False, pygame.sprite.collide_circle))
+
+    def hit(self, damage):
+        """Возвращает пробиваемость (Может ли пуля продолжить двигаться и нанесённый урон)"""
+        return False, 0
+
 
 class Entity(SpriteObject):
-    def __init__(self, *group,
-                 images=['entities/error.png'], hp: int = 100, speed: int = 10, acceleration: float = 1.5):
-        super().__init__(*group)
+    class Gun:
+        def __init__(self, owner, speed=50, scatter=0.005, damage=10, fire_range=10000, bullet_count=1,
+                     fire_speed=10, reload_time=30, magazine=30):
+            """
+            :param owner: сущность-отправитель
+            :param speed: скорость пуль
+            :param scatter: разброс пуль
+            :param damage: урон от пули
+            :param fire_range: дальность
+            :param bullet_count: количество пуль за один выстрел
+            :param fire_speed: задержка в тиках между выстрелами
+            :param reload_time: задержка в тиках при перезарядке
+            :param magazine: количество патронов в магазине
+            """
+            self.bullet_count = bullet_count
+            self.owner = owner
+            self.speed = int(speed + (random() - 0.5) * speed * 0.5)
+            self.scatter = scatter * 2      # Умножаю, потому что в рассчётах фактически делю на 2
+            self.damage = damage
+            self.entities = ENTITIES
+            self.tik = 0
+            self.reload_time = 0
+            self.fire_speed = fire_speed
+            self.reload_speed = reload_time
+            self.magazine = 0
+            self.ammo = 100
+            self.magazine_max = magazine
+
+        def fire(self, coordinates, angle):  # TODO Доделать перезарядку и время между выстрелами
+            """
+            Стреляет
+            :param coordinates: координаты создания пуль
+            :param angle: угол направления пуль
+            :return: None
+            """
+            print(self.magazine)
+            if self.tik >= self.fire_speed and self.reload_time == 0 and self.magazine > 0:
+                self.tik = 0
+                self.magazine -= 1
+                for _ in range(self.bullet_count):
+                    scatter = (random() - 0.5) * self.scatter
+                    angle = radians(angle) + scatter
+                    x_move, y_move = int(cos(angle) * self.speed), -int(sin(angle) * self.speed)
+                    x, y = coordinates
+                    Bullet(owner=self.owner, delta_x=x_move, delta_y=y_move,
+                           x=x, y=y, damage=self.damage, angle=angle)
+            elif self.magazine <= 0:
+                self.reload()
+
+        def reload(self):
+            self.reload_time += 1
+
+        def add_to_ammo(self, count):
+            self.ammo += count
+
+
+        def new_tik(self):
+            if self.reload_time > 0:
+                self.reload_time += 1
+                if self.reload_time >= self.reload_speed:
+                    self.reload_time = 0
+                    self.magazine = self.magazine_max
+                if self.reload_time >= self.reload_speed:
+                    self.reload_speed = 0
+                    self.tik = 0
+            else:
+                self.tik += 1
+
+
+    def __init__(self, images=['images/error.png'], hp: int = 100, speed: int = 10, acceleration: float = 1.5):
+        super().__init__()
+        ENTITIES.add(self)
+        self.obstacles = OBSTACLES
+        self.entities = ENTITIES
         self.angle = 0                          # Угол наклона изображения
         self.tick = 0                           # Текущий тик для изображения
         self.current = 0                        # Текущий номер изображения
@@ -45,17 +132,21 @@ class Entity(SpriteObject):
         self.speed = speed                      # Максимальная длина шага
         self.acceleration = acceleration        # Ускорение при беге
         self.images = images                    # список путей к спрайтам
-        self.image = pygame.transform.rotate(load_image(self.images[self.current]), self.angle)
+        self.load_image(load_image(self.images[self.current]), self.angle)
         self.rect = self.image.get_rect()
+        self.radius = 13                        # Радиус кружочка для столкновений
+        self.gun = Entity.Gun(owner=self, speed=50, scatter=1, damage=1)
+        # TODO Норм стандартное оружие
+        self.update_sprite()
 
-    def change_sprite(self):
-        """Класс для изменения картинки на следующую. Берёт следующий по счёту спрайт из self.image"""
+    def change_sprite(self, current=None):
+        """Метод для изменения картинки на следующую. Берёт следующий по счёту спрайт из self.image"""
         if len(self.images) - 1 <= self.current:
             self.current = -1
-        self.current += 1
-        x, y = self.rect.x, self.rect.y
-        self.rect.x = x
-        self.rect.y = y
+        if current:
+            self.current = current
+        else:
+            self.current += 1
         self.update_sprite()
 
     def update_sprite(self, name=None):
@@ -66,10 +157,10 @@ class Entity(SpriteObject):
         """
         x, y = self.rect.center
         if name:
-            self.image = pygame.transform.rotate(load_image(name), self.angle)
+            self.load_image(load_image(name), self.angle)
         else:
-            self.image = pygame.transform.rotate(load_image(self.images[self.current]), self.angle)
-        self.rect = self.image.get_rect()
+            self.load_image(load_image(self.images[self.current]), self.angle)
+        # self.rect = self.image.get_rect()
         self.move_center_to(x, y)
 
     def new_tick(self, a=1):
@@ -79,25 +170,54 @@ class Entity(SpriteObject):
             self.tick = 0
             self.change_sprite()
 
+    def can_move_to(self, delta_x, delta_y) -> bool:
+        """
+        Определяет, может ли объект сдвинутся на x, y
+        :param delta_x: сдвиг по x
+        :param delta_y: сдвиг по y
+        """
+        delta_x = -int(delta_x)
+        delta_y = -int(delta_y)
+        self.move(delta_x, delta_y)
+        ans = True
+        pygame.display.flip()
+        if self.collide(self.obstacles):
+            ans = False
+        self.move(-delta_x, -delta_y)
+        return ans
+
+    def fire(self, angle):
+        self.gun.fire(self.rect.center, angle)
+
+    def hit(self, damage):
+        self.hp -= damage
+        if self.hp <= 0:
+            self.kill()
+        print(damage)
+        return False, damage
+
 
 class Player(Entity):
-    NO_GUN_IMAGES = ['entities\\player\\player_0.png', 'entities\\player\\player_1.png',
-                     'entities\\player\\player_2.png']
+    NO_GUN_IMAGES = ['images\\player\\player_0.png', 'images\\player\\player_1.png',
+                     'images\\player\\player_2.png']
 
-    def __init__(self, *group, world: pygame.sprite.Group):
+    def __init__(self):
         """
-        :param group: группы для добавления спрайта игрока
-        :param world: группа с спрайтами кроме игрока
         """
-        super().__init__(*group, images=Player.NO_GUN_IMAGES)
-        self.world = world
+        self.GUN_1 = Entity.Gun(self)
+        super().__init__(images=Player.NO_GUN_IMAGES)
+        WORLD.remove(self)
+        self.world = WORLD
+        self.radius = 13
         self.rect = self.image.get_rect()
         self.rect.x = 350
         self.rect.y = 250
+        self.gun = self.GUN_1
 
     def update(self):
+        self.gun.new_tik()
         angle = self.angle_to_mouse()
-        self.angle = radians(degrees(angle + 90))
+        self.angle = radians(degrees(angle + 90 + 180))
         self.update_sprite()
         #  Определяю, какие кнопочки нажаты и куда нужно воевать
         key_state = pygame.key.get_pressed()
@@ -116,21 +236,34 @@ class Player(Entity):
             speed *= self.acceleration
             a = 2
 
+        move = True
         if x_core == 0:
+            q = 90
             if y_core == 0:
-                return None
+                self.change_sprite(1)
+                move = False
             x_core = 1
+        elif x_core == -1:
+            q = -45
+        else:
+            q = 45
 
-        x, y = self.rect.center
-        xm, ym = pygame.mouse.get_pos()
-        angle_move = angle
-        angle_move += 90 * y_core
-        angle_move = radians(angle_move)
-        x_circle, y_circle = cos(angle_move), sin(angle_move)
-        x_move, y_move = -x_circle * speed * x_core, y_circle * speed * x_core
-        self.world_move(x_move, y_move)
-        self.new_tick(a)
-        # TODO Проверку на препяствия и ускорение
+        if move:
+            angle_move = angle
+            angle_move += q * y_core
+            angle_move = radians(angle_move)
+            x_circle, y_circle = cos(angle_move), sin(angle_move)
+            x_move, y_move = -x_circle * speed * x_core, y_circle * speed * x_core
+            while not self.can_move_to(x_move, y_move):
+                x_move //= 1.1
+                y_move //= 1.1
+                if x_move < 1 and y_move < 1:
+                    x_move = y_move = 0
+                    break
+            self.world_move(x_move, y_move)
+            self.new_tick(a)
+        if pygame.mouse.get_pressed()[0]:
+            self.fire(angle)
 
     def world_move(self, x, y):
         """
@@ -138,9 +271,10 @@ class Player(Entity):
         """
         for sprite in self.world.sprites():
             x, y = int(x), int(y)
-            sprite.vector_move(x, y)
+            sprite.move(x, y)
 
-    def get_move_vector(self, x, y, radius=1):
+    @staticmethod
+    def get_move_vector(x, y, radius=1):
         """
         Возвращает координаты, лежащие на определённом расстоянии и на одной линии с x, y и 0, 0
         :param x: координата относительно игрока
@@ -172,18 +306,89 @@ class Player(Entity):
                 angle = 180 - angle
             else:
                 angle += 180
+        if x == 0 and y == -1:
+            angle = 270  # Это не костыль
         return angle
 
 
 class Enemy(Entity):
-    pass
-
+    def __init__(self, x, y):
+        super().__init__()
+        self.rect.center = x, y
 
 class BackGround(SpriteObject):
-    def __init__(self, *group):
-        super().__init__(*group)
-        self.group = group
+    def __init__(self,):
+        super().__init__()
 
     def setup(self, img):
-        self.image = load_image(img)
+        self.load_image(load_image(img))
+
+
+class Obstacle(SpriteObject):
+    def __init__(self, x, y, image='images/error.png'):
+        super().__init__()
+        OBSTACLES.add(self)
+        self.load_image(load_image(image))
         self.rect = self.image.get_rect()
+        self.move(x, y)
+
+
+class Wall(Obstacle):
+    def __init__(self, x, y, image='images/environment/wall_1.png'):
+        super().__init__(x=x, y=y, image=image)
+
+
+class GUI:
+    def __init__(self, player):
+        self.player = player
+        self.screen = SCREEN
+
+    def update(self):
+        pygame.draw.rect(self.screen, (120, 0, 0), ((0, 0), (self.player.hp, 10)))
+
+
+class Bullet(SpriteObject):
+    def __init__(self, damage, owner, delta_x, delta_y, x, y, angle):
+        """
+        :param owner: сущность, создавшая пули
+        :param delta_x: каждое обновление прибавляет к x
+        :param x: начальная координата
+        :param delta_y: каждое обновление прибавляет к y
+        :param y: начальная координата y
+        """
+        self.damage = damage
+        super().__init__()
+        ENTITIES.remove(self)
+        self.load_image(image=load_image('images\\bullet.png', angle=angle))
+        self.owner = owner
+        self.delta_x, self.delta_y = delta_x, delta_y
+        self.move_center_to(x, y)
+        self.update()
+
+    def update(self):
+        old = self.rect.center
+        self.move(self.delta_x, self.delta_y)
+        new = self.rect.center
+        line = pygame.draw.line(SCREEN, (100, 100, 200), old, new, 3)
+        objects = list(set(ENTITIES.sprites() + OBSTACLES.sprites()))
+        objects.remove(self.owner)
+        a = line.collidelistall(objects)
+        objects = list(objects[i] for i in a)
+        if objects:
+            old_x, old_y = old
+            obj = objects.pop(0)
+            kill = obj
+            obj = obj.rect.center
+            x_kill, y_kill = obj[0] - old_x, obj[1] - old_y
+            s_kill = x_kill ** 2 + y_kill ** 2
+            for obj in objects:
+                x, y = obj.rect.center
+                x -= old_x
+                y -= old_y
+                s = x ** 2 + y ** 2
+                if s_kill > s:
+                    x_kill, y_kill, s_kill = x, y, s
+                    kill = obj
+            can_move, damage = kill.hit(self.damage)
+            if not can_move:
+                self.kill()
