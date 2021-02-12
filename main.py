@@ -1,11 +1,12 @@
 import pygame
+pygame.init()
+pygame.mixer.init()
 from game import Game
 import keys
 from constant import *
 
 
 if __name__ == '__main__':
-    pygame.init()
     pygame.display.flip()
     game = Game(SCREEN)
 
@@ -28,11 +29,11 @@ if __name__ == '__main__':
             e_type = event.type
 
             if e_type == pygame.QUIT:
-                print('aaa')
                 exit(0)
 
             if e_type == pygame.KEYDOWN:
-                pass
+                if event.key == pygame.K_ESCAPE:
+                    exit()
 
             elif e_type == UPDATE_SCREEN_EVENT:
                 update_screen = True

@@ -51,8 +51,8 @@ class SpriteObject(pygame.sprite.Sprite):
 
 class Entity(SpriteObject):
     class Gun:
-        def __init__(self, owner, speed=50, scatter=0.005, damage=10, fire_range=10000, bullet_count=1,
-                     fire_speed=10, reload_time=30, magazine=30):
+        def __init__(self, owner, speed=50, scatter=0.05, damage=10, fire_range=10000, bullet_count=1,
+                     fire_speed=2, reload_time=100, magazine=30):
             """
             :param owner: сущность-отправитель
             :param speed: скорость пуль
@@ -65,17 +65,17 @@ class Entity(SpriteObject):
             :param magazine: количество патронов в магазине
             """
             self.bullet_count = bullet_count
+            self.shoot_sound = SOUND_MACHINE_GUN
             self.owner = owner
             self.speed = int(speed + (random() - 0.5) * speed * 0.5)
             self.scatter = scatter * 2      # Умножаю, потому что в рассчётах фактически делю на 2
             self.damage = damage
             self.entities = ENTITIES
             self.tik = 0
-            self.reload_time = 0
+            self.reload_time = 1
             self.fire_speed = fire_speed
             self.reload_speed = reload_time
             self.magazine = 0
-            self.ammo = 100
             self.magazine_max = magazine
 
         def fire(self, coordinates, angle):
@@ -85,10 +85,10 @@ class Entity(SpriteObject):
             :param angle: угол направления пуль
             :return: None
             """
-            print(self.magazine)
             if self.tik >= self.fire_speed and self.reload_time == 0 and self.magazine > 0:
                 self.tik = 0
                 self.magazine -= 1
+                self.shoot_sound.play()
                 for _ in range(self.bullet_count):
                     scatter = (random() - 0.5) * self.scatter
                     angle = radians(angle) + scatter
@@ -102,11 +102,7 @@ class Entity(SpriteObject):
         def reload(self):
             self.reload_time += 1
 
-        def add_to_ammo(self, count):
-            self.ammo += count
-
-
-        def new_tik(self):
+        def new_tick(self):
             if self.reload_time > 0:
                 self.reload_time += 1
                 if self.reload_time >= self.reload_speed:
@@ -117,7 +113,6 @@ class Entity(SpriteObject):
                     self.tik = 0
             else:
                 self.tik += 1
-
 
     def __init__(self, images=['images/error.png'], hp: int = 100, speed: int = 10, acceleration: float = 1.5):
         super().__init__()
@@ -181,7 +176,7 @@ class Entity(SpriteObject):
         self.move(delta_x, delta_y)
         ans = True
         pygame.display.flip()
-        if self.collide(self.obstacles):
+        if self.collide(OBSTACLES):
             ans = False
         self.move(-delta_x, -delta_y)
         return ans
@@ -193,7 +188,6 @@ class Entity(SpriteObject):
         self.hp -= damage
         if self.hp <= 0:
             self.kill()
-        print(damage)
         return False, damage
 
 
@@ -210,12 +204,11 @@ class Player(Entity):
         self.world = WORLD
         self.radius = 13
         self.rect = self.image.get_rect()
-        self.rect.x = 350
-        self.rect.y = 250
+        self.rect.center = PLAYER_COORDINATES
         self.gun = self.GUN_1
 
     def update(self):
-        self.gun.new_tik()
+        self.gun.new_tick()
         angle = self.angle_to_mouse()
         self.angle = radians(degrees(angle + 90 + 180))
         self.update_sprite()
@@ -315,6 +308,7 @@ class Enemy(Entity):
     def __init__(self, x, y):
         super().__init__()
         self.rect.center = x, y
+
 
 class BackGround(SpriteObject):
     def __init__(self,):
