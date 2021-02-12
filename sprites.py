@@ -78,7 +78,7 @@ class Entity(SpriteObject):
             self.magazine = 0
             self.magazine_max = magazine
 
-        def fire(self, coordinates, angle):
+        def fire(self, coordinates, angle):  # TODO Доделать перезарядку и время между выстрелами
             """
             Стреляет
             :param coordinates: координаты создания пуль
