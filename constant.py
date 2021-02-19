@@ -2,9 +2,9 @@ import pygame
 
 
 video = pygame.display.Info()
-SIZE = 800, 600 # video.current_w, video.current_h
+SIZE = 800, 600  # video.current_w, video.current_h
 PLAYER_COORDINATES = SIZE[0] // 2, SIZE[1] // 2
-SCREEN = pygame.display.set_mode(SIZE) # pygame.display.set_mode(flags=pygame.FULLSCREEN)
+SCREEN = pygame.display.set_mode(SIZE)  # pygame.display.set_mode(flags=pygame.FULLSCREEN)
 
 ALL_SPRITES = pygame.sprite.Group()     # группа для всех спрайтов
 ENTITIES = pygame.sprite.Group()        # группа для сущностей

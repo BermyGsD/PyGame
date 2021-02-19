@@ -5,8 +5,17 @@ from log import logging
 from constant import *
 
 
-def check_obstacle(x1, y1, x2, y2):  # TODO сделать метод определения наличия препятствия между двумя точками (Glepp to Pasha)
-    return False
+def check_obstacle(point, point2, size=2):
+    """
+    Возвращает наличие стен на пути
+    :param point: первая точка
+    :param point2: вторая точка
+    :param size: толщина линии
+    :return: bool наличие OBSTACLES на пути
+    """
+    line = pygame.draw.line(SCREEN, (100, 100, 200), point, point2, size)
+    objects = OBSTACLES.sprites()
+    return bool(line.collidelistall(objects))
 
 
 class Game:
@@ -32,10 +41,10 @@ class Game:
         from levels import test
         self.background.setup(test.GAME['BACKGROUND'])
         wall_image = test.GAME['WALL_IMAGE']
-        for wall_coordinates in test.GAME['WALLS']:
+        """for wall_coordinates in test.GAME['WALLS']:
             x, y = wall_coordinates
-            Wall(x=x, y=y, image=wall_image)
-        a = Enemy(100, 100)
+            Wall(x=x, y=y, image=wall_image)"""
+        a = Enemy(0, 0)
         a.load_image(load_image(), angle=1)
 
     def update(self):
