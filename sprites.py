@@ -21,6 +21,7 @@ def load_image(name='images/error.png', angle=0.0):
 class SpriteObject(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__(WORLD, ALL_SPRITES)
+        self.penable = False  # Пробиваем ли объект
 
     def move_center_to(self, x, y):
         """Передвигает центр объекта в x, y"""
@@ -46,13 +47,13 @@ class SpriteObject(pygame.sprite.Sprite):
 
     def hit(self, damage):
         """Возвращает пробиваемость (Может ли пуля продолжить двигаться и нанесённый урон)"""
-        return False, 0
+        return self.penable, 0
 
 
 class Entity(SpriteObject):
     class Gun:
-        def __init__(self, owner, speed=50, scatter=0, damage=10, fire_range=10000, bullet_count=1,
-                     fire_speed=2, reload_time=100, magazine=30):
+        def __init__(self, owner, speed=25, scatter=0, damage=10, fire_range=10000, bullet_count=1,
+                     fire_speed=10, reload_time=75, magazine=15):
             """
             :param owner: сущность-отправитель
             :param speed: скорость пуль
@@ -71,7 +72,7 @@ class Entity(SpriteObject):
             self.scatter = scatter * 2      # Умножаю, потому что в рассчётах фактически делю на 2
             self.damage = damage
             self.entities = ENTITIES
-            self.tik = 0
+            self.tick = 0
             self.reload_time = 1
             self.fire_speed = fire_speed
             self.reload_speed = reload_time
@@ -85,8 +86,8 @@ class Entity(SpriteObject):
             :param angle: угол направления пуль
             :return: None
             """
-            if self.tik >= self.fire_speed and self.reload_time == 0 and self.magazine > 0:
-                self.tik = 0
+            if self.tick >= self.fire_speed and self.reload_time == 0 and self.magazine > 0:
+                self.tick = 0
                 self.magazine -= 1
                 self.shoot_sound.play()
                 for _ in range(self.bullet_count):
@@ -110,9 +111,9 @@ class Entity(SpriteObject):
                     self.magazine = self.magazine_max
                 if self.reload_time >= self.reload_speed:
                     self.reload_speed = 0
-                    self.tik = 0
+                    self.tick = 0
             else:
-                self.tik += 1
+                self.tick += 1
 
     def __init__(self, images=['images/error.png'], hp: int = 100, speed: int = 10, acceleration: float = 1.5):
         super().__init__()
@@ -130,7 +131,7 @@ class Entity(SpriteObject):
         self.load_image(load_image(self.images[self.current]), self.angle)
         self.rect = self.image.get_rect()
         self.radius = 13                        # Радиус кружочка для столкновений
-        self.gun = Entity.Gun(owner=self, speed=50, scatter=1, damage=1)
+        self.gun = Entity.Gun(owner=self, speed=50, scatter=0.05, damage=5)
         # TODO Норм стандартное оружие
         self.update_sprite()
 
@@ -186,6 +187,12 @@ class Entity(SpriteObject):
     def hit(self, damage):
         self.hp -= damage
         if self.hp <= 0:
+            x, y = self.rect.center
+            deadbody = SpriteObject()
+            deadbody.load_image(load_image('images\\enemy\\enemy_dead.png'))
+            deadbody.move_center_to(x, y)
+            deadbody.penable = True
+            ENTITIES.add(deadbody)
             self.kill()
         return False, damage
 
@@ -325,7 +332,7 @@ class Enemy(Entity):
 
     def update(self):
         self.gun.new_tick()
-        x1, y1, x2, y2 = (*self.rect.center, *PLAYER_COORDINATES)
+        x1, y1, x2, y2 = *self.rect.center, *PLAYER_COORDINATES
         x = 1 if x1 - x2 > 0 else -1
         y = 1 if y1 - y2 > 0 else -1
         self.angle = self.angle_to_coordinate(x1, y1, x2, y2) - 90
@@ -388,7 +395,6 @@ class Bullet(SpriteObject):
         :param delta_y: каждое обновление прибавляет к y
         :param y: начальная координата y
         """
-        print(angle)
         self.damage = damage
         super().__init__()
         ENTITIES.remove(self)
