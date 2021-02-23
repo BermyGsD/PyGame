@@ -236,7 +236,6 @@ class Entity(SpriteObject):
         return angle
 
 
-
 class Player(Entity):
     NO_GUN_IMAGES = ['images\\player\\player_0.png', 'images\\player\\player_1.png',
                      'images\\player\\player_2.png']
@@ -248,6 +247,7 @@ class Player(Entity):
         super().__init__(images=Player.NO_GUN_IMAGES)
         WORLD.remove(self)
         self.world = WORLD
+        PLAYER.add(self)
         self.radius = 13
         self.rect = self.image.get_rect()
         self.rect.center = PLAYER_COORDINATES

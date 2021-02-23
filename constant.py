@@ -10,5 +10,6 @@ ALL_SPRITES = pygame.sprite.Group()     # группа для всех спра�
 ENTITIES = pygame.sprite.Group()        # группа для сущностей
 OBSTACLES = pygame.sprite.Group()       # группа для фоновых
 WORLD = pygame.sprite.Group()           # группа для всего, кроме игрока
+PLAYER = pygame.sprite.Group()          # группа для игрока
 SOUND_PISTOL_SHOOT = pygame.mixer.Sound(file='sounds\\bang_08.ogg')
 SOUND_MACHINE_GUN = pygame.mixer.Sound(file='sounds\\bang_06.ogg')

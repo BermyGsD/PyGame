@@ -45,6 +45,7 @@ if __name__ == '__main__':
             ALL_SPRITES.update()
             SCREEN.fill((0, 0, 0))
             ALL_SPRITES.draw(SCREEN)
+            PLAYER.draw(SCREEN)
             game.gui.update()
             pygame.display.flip()
             update_screen = False

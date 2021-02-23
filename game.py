@@ -41,11 +41,23 @@ class Game:
         from levels import test
         self.background.setup(test.GAME['BACKGROUND'])
         wall_image = test.GAME['WALL_IMAGE']
-        """for wall_coordinates in test.GAME['WALLS']:
-            x, y = wall_coordinates
-            Wall(x=x, y=y, image=wall_image)"""
-        a = Enemy(0, 0)
-        a.load_image(load_image(), angle=1)
+        tile_image = test.GAME['TILE_IMAGE']
+        lvlmap = open(test.GAME['WALLS'])
+        lvlmap = lvlmap.readlines()
+        for i in range(len(lvlmap)):
+            for j in range(len(lvlmap[i])):
+                x, y = j * 64, i * 64
+                a = lvlmap[i][j]
+                if a == '#':
+                    Wall(x=x, y=y, image=wall_image)
+                elif a == '.':
+                    pass
+                elif a == '@':
+                    pass
+                elif a == '!':
+                    print(x, y)
+                    a = Enemy(x, y)
+                    a.load_image(load_image(), angle=1)
 
     def update(self):
         ALL_SPRITES.update()
