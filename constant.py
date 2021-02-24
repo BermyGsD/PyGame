@@ -1,4 +1,5 @@
 import pygame
+pygame.init()
 
 
 video = pygame.display.Info()

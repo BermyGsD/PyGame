@@ -396,6 +396,9 @@ class GUI:
     def update(self):
         pygame.draw.rect(self.screen, (120, 0, 0), ((0, 0), (self.player.hp, 10)))
 
+    def create_menu(self):
+        pass
+
 
 class Bullet(SpriteObject):
     def __init__(self, damage, owner, delta_x, delta_y, x, y, angle):

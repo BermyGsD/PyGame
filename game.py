@@ -58,9 +58,8 @@ class Game:
                     y_add = - 32 + PLAYER_COORDINATES[1]
                     player_coordinates = -x + x_add, -y + y_add
                 elif a == '!':
-                    print(x, y)
-                    a = Enemy(x, y)
-                    a.load_image(load_image(name=Enemy.IMAGES_1[0]))
+                    f = Enemy(x, y)
+                    f.load_image(load_image(name=Enemy.IMAGES_1[0]))
                 else:
                     pass
         print(player_coordinates)

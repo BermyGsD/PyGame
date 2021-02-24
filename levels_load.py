@@ -12,7 +12,8 @@ class LevelLoader:
             return {
                 'BACKGROUND': path.normpath(f'levels/{level_name}/back.png'),
                 'WALL':       path.normpath(f'images/environment/wall_1.png'),
-                'MAP':        path.normpath(f'levels/{level_name}/map.txt')
+                'MAP':        path.normpath(f'levels/{level_name}/map.txt'),
+                'TILE':       path.normpath(f'levels/{level_name}/tile.png')
             }
         else:
             raise ValueError

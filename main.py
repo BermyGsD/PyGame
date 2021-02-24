@@ -1,9 +1,9 @@
 import pygame
-pygame.init()
-pygame.mixer.init()
 from game import Game
 import keys
 from constant import *
+pygame.init()
+pygame.mixer.init()
 
 
 if __name__ == '__main__':
@@ -33,7 +33,7 @@ if __name__ == '__main__':
 
             if e_type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    exit()
+                    pause = not pause
 
             elif e_type == UPDATE_SCREEN_EVENT:
                 update_screen = True
@@ -42,13 +42,17 @@ if __name__ == '__main__':
                 update_game = True
 
         if update_screen:
-            ALL_SPRITES.update()
-            SCREEN.fill((0, 0, 0))
-            ALL_SPRITES.draw(SCREEN)
-            PLAYER.draw(SCREEN)
-            game.gui.update()
+            if not pause:
+                ALL_SPRITES.update()
+                SCREEN.fill((0, 0, 0))
+                ALL_SPRITES.draw(SCREEN)
+                PLAYER.draw(SCREEN)
+                game.gui.update()
+            else:
+                game.gui.create_menu()
             pygame.display.flip()
             update_screen = False
+
         """if update_game:
             game.update()
             update_game = False"""

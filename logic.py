@@ -13,8 +13,9 @@ class AI:
         can_see = check_obstacle(self.enemy.x, self.enemy.y, self.hero.x, self.hero.y)
         if not can_see:
             self.go_to_hero()
-        print('piu-piu')  # TODO сделать поиск укрытия и наведение на ГГ
+        angle = self.enemy.angle_to_coordinate()
+        self.enemy.fire(angle)
 
     def go_to_hero(self):
         """поиск пути к герою и движение к нему"""
-        pass  # TODO сделать движение в комнату героя
+        pass
