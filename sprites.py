@@ -24,11 +24,13 @@ class SpriteObject(pygame.sprite.Sprite):
         self.penable = False  # Пробиваем ли объект
 
     def move_center_to(self, x, y):
+        x, y = int(x), int(y)
         """Передвигает центр объекта в x, y"""
         self.rect.center = x, y
 
     def move(self, x, y):
         """передвигает объект на x, y"""
+        x, y = int(x), int(y)
         self.rect.x += x
         self.rect.y += y
 
@@ -40,7 +42,13 @@ class SpriteObject(pygame.sprite.Sprite):
         :return: None
         """
         self.image = pygame.transform.rotate(image, angle)
-        self.rect = self.image.get_rect()
+        try:                                            # памятник моей тупости: rect картинки изначально имеет 0, 0
+            center = self.rect.center                   # координаты, из-за чего враги смещались в нулевые координаты
+        except AttributeError:                          # после загрузки изображения (Urmipie)
+            self.rect = self.image.get_rect()
+        else:
+            self.rect = self.image.get_rect()
+            self.rect.center = center
 
     def collide(self, group: pygame.sprite.Group):
         return bool(pygame.sprite.spritecollide(self, group, False, pygame.sprite.collide_circle))
@@ -53,7 +61,7 @@ class SpriteObject(pygame.sprite.Sprite):
 class Entity(SpriteObject):
     class Gun:
         def __init__(self, owner, speed=25, scatter=0, damage=10, fire_range=10000, bullet_count=1,
-                     fire_speed=10, reload_time=75, magazine=15):
+                     fire_speed=50, reload_time=75, magazine=15):
             """
             :param owner: сущность-отправитель
             :param speed: скорость пуль
@@ -177,6 +185,7 @@ class Entity(SpriteObject):
         self.move(delta_x, delta_y)
         ans = True
         if self.collide(OBSTACLES):
+        # if pygame.sprite.spritecollideany(self, OBSTACLES.sprites(), pygame.sprite.collide_circle):
             ans = False
         self.move(-delta_x, -delta_y)
         return ans
@@ -350,13 +359,14 @@ class Enemy(Entity):
             # print(4)        # TODO адекватный АИ
         x, y = x * cos(radians(self.angle - 90)) * self.speed, y * sin(radians(self.angle - 90)) * self.speed
         self.gun.fire(self.rect.center, self.angle + 90)
+        # print(self.rect.collidelistall(OBSTACLES))
         if self.can_move_to(x, y):
             self.move(x, y)
         self.new_tick()
 
 
 class BackGround(SpriteObject):
-    def __init__(self,):
+    def __init__(self):
         super().__init__()
 
     def setup(self, img):
@@ -369,6 +379,7 @@ class Obstacle(SpriteObject):
         OBSTACLES.add(self)
         self.load_image(load_image(image))
         self.rect = self.image.get_rect()
+        # self.radius = 32
         self.move(x, y)
 
 
@@ -416,6 +427,7 @@ class Bullet(SpriteObject):
             pass
         a = line.collidelistall(objects)
         objects = list(objects[i] for i in a)
+        # can_move = None
         if objects:
             old_x, old_y = old
             obj = objects.pop(0)
@@ -434,3 +446,4 @@ class Bullet(SpriteObject):
             can_move, damage = kill.hit(self.damage)
             if not can_move:
                 self.kill()
+        # print(objects, self.rect.center, can_move)
