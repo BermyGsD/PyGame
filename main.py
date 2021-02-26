@@ -1,8 +1,11 @@
 import pygame
+
+pygame.init()
+
 from game import Game
 import keys
 from constant import *
-pygame.init()
+from gui import show_pause
 pygame.mixer.init()
 
 
@@ -12,16 +15,14 @@ if __name__ == '__main__':
 
     # Event'ы и всё связанное с ними
     FPS = 16    # Миллисекунд между обновлениями
-    SPEED = 16  # Время между тиками игры (тоже миллисекунды)
 
     UPDATE_SCREEN_EVENT = pygame.USEREVENT + 1  # Эвент обновление экрана
     pygame.time.set_timer(UPDATE_SCREEN_EVENT, FPS)
     UPDATE_GAME_EVENT = pygame.USEREVENT + 2    # Эвент обновления игры
-    pygame.time.set_timer(UPDATE_GAME_EVENT, SPEED)
 
     update_screen = False  # Обновление изображения в следующей итерации
     update_game = False    # Обновление игры в следующей итерации
-    pause = False          # Внезапно, пауза
+    pause = True          # Внезапно, пауза
     # pygame.mouse.set_visible(False)
 
     while game.running:
@@ -49,10 +50,6 @@ if __name__ == '__main__':
                 PLAYER.draw(SCREEN)
                 game.gui.update()
             else:
-                game.gui.create_menu()
+               show_pause()
             pygame.display.flip()
             update_screen = False
-
-        """if update_game:
-            game.update()
-            update_game = False"""

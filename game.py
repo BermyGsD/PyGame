@@ -1,6 +1,7 @@
 from sprites import *
 from log import logging
 from constant import *
+from gui import GUI
 from levels_load import LEVEL_LOADER
 
 
@@ -20,18 +21,12 @@ def check_obstacle(point, point2, size=2):
 class Game:
     @logging
     def __init__(self, screen):
-        self.all_sprites = ALL_SPRITES          # группа для всех спрайтов
-        self.entities = ENTITIES                # группа для сущностей
-        self.obstacles = OBSTACLES              # группа для фоновых
-        self.all_without_player = WORLD         # группа для всего, кроме игрока
-
-        # Должен быть способ сделать это без кучи почти не отличающихся групп. Но я не знаю, как (Pasha)
         self.running = True
         self.screen = screen
         self.background = BackGround()
         self.player = Player()
         self.load_level()
-        self.all_sprites.draw(self.screen)
+        ALL_SPRITES.draw(self.screen)
         self.gui = GUI(self.player)
         pygame.display.flip()
 
@@ -45,6 +40,7 @@ class Game:
         with open(level_map) as file:
             lvl_map = file.readlines()
         player_coordinates = 100, 100
+        LEVEL_MAP = lvl_map
         for i in range(len(lvl_map)):
             for j in range(len(lvl_map[i])):
                 x, y = j * 64, i * 64

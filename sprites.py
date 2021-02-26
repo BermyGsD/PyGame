@@ -7,7 +7,6 @@ from random import random
 from constant import *
 
 
-@logging
 def load_image(name='images/error.png', angle=0.0):
     if not path.isfile(name):
         print(f"Файл с изображением '{name}' не найден")
@@ -128,6 +127,7 @@ class Entity(SpriteObject):
         ENTITIES.add(self)
         self.obstacles = OBSTACLES
         self.entities = ENTITIES
+        self.score = 0
         self.angle = 0                          # Угол наклона изображения
         self.tick = 0                           # Текущий тик для изображения
         self.current = 0                        # Текущий номер изображения
@@ -189,6 +189,26 @@ class Entity(SpriteObject):
             ans = False
         self.move(-delta_x, -delta_y)
         return ans
+
+    def get_move_coordinates(self, delta_x, delta_y):
+        """
+        Возвращает координаты для движения
+        """
+        for case in (self.__check_step(delta_x, delta_y), self.__check_step(delta_x, 0), self.__check_step(0, delta_y)):
+            if case:
+                return case
+        return 0, 0
+
+    def __check_step(self, delta_x, delta_y):
+        """
+        Проверяет возможность прохода в нужную сторону и возвращает координаты, если может двигаться иначе False
+        """
+        while abs(delta_x) > 1 or abs(delta_y) > 1:
+            if self.can_move_to(int(delta_x), int(delta_y)):
+                return int(delta_x), int(delta_y)
+            delta_x /= 2
+            delta_y /= 2
+        return False
 
     def fire(self, angle):
         self.gun.fire(self.rect.center, angle)
@@ -302,13 +322,14 @@ class Player(Entity):
             angle_move = radians(angle_move)
             x_circle, y_circle = cos(angle_move), sin(angle_move)
             x_move, y_move = -x_circle * speed * x_core, y_circle * speed * x_core
-            while not self.can_move_to(x_move, y_move):
+            """while not self.can_move_to(x_move, y_move):
                 x_move //= 1.1
                 y_move //= 1.1
                 if x_move < 1 and y_move < 1:
                     x_move = y_move = 0
                     break
-            self.world_move(x_move, y_move)
+            self.world_move(x_move, y_move)"""
+            self.world_move(*self.get_move_coordinates(x_move, y_move))
             self.new_tick(a)
         if pygame.mouse.get_pressed()[0]:
             self.fire(angle)
@@ -360,8 +381,7 @@ class Enemy(Entity):
         x, y = x * cos(radians(self.angle - 90)) * self.speed, y * sin(radians(self.angle - 90)) * self.speed
         self.gun.fire(self.rect.center, self.angle + 90)
         # print(self.rect.collidelistall(OBSTACLES))
-        if self.can_move_to(x, y):
-            self.move(x, y)
+        self.move(*self.get_move_coordinates(x, y))
         self.new_tick()
 
 
@@ -388,18 +408,6 @@ class Wall(Obstacle):
         super().__init__(x=x, y=y, image=image)
 
 
-class GUI:
-    def __init__(self, player):
-        self.player = player
-        self.screen = SCREEN
-
-    def update(self):
-        pygame.draw.rect(self.screen, (120, 0, 0), ((0, 0), (self.player.hp, 10)))
-
-    def create_menu(self):
-        pass
-
-
 class Bullet(SpriteObject):
     def __init__(self, damage, owner, delta_x, delta_y, x, y, angle):
         """
@@ -420,6 +428,9 @@ class Bullet(SpriteObject):
 
     def update(self):
         old = self.rect.center
+        if not (0 < old[0] < SIZE[0] and 0 < old[1] < SIZE[1]):
+            self.kill()
+            return None
         self.move(self.delta_x, self.delta_y)
         new = self.rect.center
         line = pygame.draw.line(SCREEN, (100, 100, 200), old, new, 3)
@@ -447,6 +458,6 @@ class Bullet(SpriteObject):
                     x_kill, y_kill, s_kill = x, y, s
                     kill = obj
             can_move, damage = kill.hit(self.damage)
+            self.owner.score += damage
             if not can_move:
                 self.kill()
-        # print(objects, self.rect.center, can_move)
