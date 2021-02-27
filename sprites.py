@@ -359,10 +359,14 @@ class Enemy(Entity):
         self.move_center_to(x, y)
         self.radius = 16
         self.speed = 5
+        self.ai = None
+        x, y = self.rect.center
+        self.waypoints = [(x, y), (x, y)]
+        self.on_the_way = False
 
     def update(self):
         self.gun.new_tick()
-        x1, y1, x2, y2 = *self.rect.center, *PLAYER_COORDINATES
+        x1, y1, x2, y2 = *self.rect.center, *self.waypoints[0]
         x = 1 if x1 - x2 > 0 else -1
         y = 1 if y1 - y2 > 0 else -1
         self.angle = self.angle_to_coordinate(x1, y1, x2, y2) - 90
@@ -379,10 +383,20 @@ class Enemy(Entity):
             x, y = -1, 1
             # print(4)        # TODO адекватный АИ
         x, y = x * cos(radians(self.angle - 90)) * self.speed, y * sin(radians(self.angle - 90)) * self.speed
-        self.gun.fire(self.rect.center, self.angle + 90)
-        # print(self.rect.collidelistall(OBSTACLES))
+        self.ai.attack()
         self.move(*self.get_move_coordinates(x, y))
+        # print(self.rect.center, self.waypoints[0])
+        if self.rect.center == self.waypoints[0]:
+            self.waypoints = self.waypoints[1:]
+            print(self.waypoints)
+        if len(self.waypoints) == 0:
+            self.waypoints.append((x1, y1))
+            self.waypoints.append((self.rect.center))
+            self.on_the_way = False
         self.new_tick()
+
+    def upload_ai(self, ai):
+        self.ai = ai
 
 
 class BackGround(SpriteObject):

@@ -3,19 +3,7 @@ from log import logging
 from constant import *
 from gui import GUI
 from levels_load import LEVEL_LOADER
-
-
-def check_obstacle(point, point2, size=2):
-    """
-    Возвращает наличие стен на пути
-    :param point: первая точка
-    :param point2: вторая точка
-    :param size: толщина линии
-    :return: bool наличие OBSTACLES на пути
-    """
-    line = pygame.draw.line(SCREEN, (100, 100, 200), point, point2, size)
-    objects = OBSTACLES.sprites()
-    return bool(line.collidelistall(objects))
+from logic import AI
 
 
 class Game:
@@ -55,6 +43,7 @@ class Game:
                     player_coordinates = -x + x_add, -y + y_add
                 elif a == '!':
                     f = Enemy(x, y)
+                    f.upload_ai(AI(f, self.player))
                     f.load_image(load_image(name=Enemy.IMAGES_1[0]))
                 else:
                     pass
