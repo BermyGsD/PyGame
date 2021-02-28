@@ -32,7 +32,7 @@ class AI:
         self.ex, self.ey, self.hx, self.hy = *self.enemy.rect.center, *self.hero.rect.center
         can_see = check_obstacle((self.ex, self.ey), (self.hx, self.hy))
         res = True
-        if not can_see and not self.enemy.on_the_way:
+        if not can_see and len(self.enemy.waypoints) == 0:
             res = self.go_to_hero()
             self.enemy.on_the_way = True
         if res and can_see:

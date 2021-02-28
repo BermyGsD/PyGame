@@ -369,7 +369,7 @@ class Enemy(Entity):
         self.radius = 16
         self.speed = 5
         self.ai = None
-        self.waypoints = []
+        self.waypoints = [(x, y)]
         self.on_the_way = False
         ENEMIES.append(self)
 
@@ -391,7 +391,7 @@ class Enemy(Entity):
             x, y = -1, 1
         else:
             x, y = -1, 1
-            # print(4)        # TODO адекватный АИ
+            # print(4)
         ex, ey, hx, hy = *self.rect.center, *self.ai.hero.rect.center
         can_see = check_obstacle((ex, ey), (hx, hy))
         if can_see:
@@ -406,9 +406,8 @@ class Enemy(Entity):
                 and self.rect.center[1] - self.waypoints[0][1] < 10:
             self.waypoints = self.waypoints[1:]
         if len(self.waypoints) == 0:
-            self.waypoints.append((x1, y1))
+            self.ai.go_to_hero()
             self.waypoints.append(self.rect.center)
-            self.on_the_way = False
         self.new_tick()
 
     def upload_ai(self, ai):
