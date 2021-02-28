@@ -20,6 +20,7 @@ ENTITIES = pygame.sprite.Group()        # группа для сущностей
 OBSTACLES = pygame.sprite.Group()       # группа для фоновых
 WORLD = pygame.sprite.Group()           # группа для всего, кроме игрока
 PLAYER = pygame.sprite.Group()          # группа для игрока
+ENEMIES = []
 
 LEVEL_MAP = None                        # Изменяемая "константа" для карты уровня
 

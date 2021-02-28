@@ -47,7 +47,6 @@ class Game:
                     f.load_image(load_image(name=Enemy.IMAGES_1[0]))
                 else:
                     pass
-        print(player_coordinates)
         for sprite in WORLD.sprites():
             sprite.move(*player_coordinates)
 

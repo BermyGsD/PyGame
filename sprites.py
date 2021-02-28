@@ -1,6 +1,7 @@
 import pygame
 from os import path
 import keys
+from logic import check_obstacle
 from math import sin, cos, asin, degrees, radians
 from log import logging
 from random import random
@@ -142,6 +143,7 @@ class Entity(SpriteObject):
         self.gun = Entity.Gun(owner=self, speed=50, scatter=0.05, damage=5)
         # TODO Норм стандартное оружие
         self.update_sprite()
+        self.mask = pygame.mask.from_surface(self.image)
 
     def change_sprite(self, current=None):
         """Метод для изменения картинки на следующую. Берёт следующий по счёту спрайт из self.image"""
@@ -184,9 +186,10 @@ class Entity(SpriteObject):
         delta_y = -int(delta_y)
         self.move(delta_x, delta_y)
         ans = True
-        if self.collide(OBSTACLES):
-        # if pygame.sprite.spritecollideany(self, OBSTACLES.sprites(), pygame.sprite.collide_circle):
-            ans = False
+        # if self.collide(OBSTACLES):
+        for i in OBSTACLES:
+            if pygame.sprite.collide_mask(self, i):
+                ans = False
         self.move(-delta_x, -delta_y)
         return ans
 
@@ -341,6 +344,12 @@ class Player(Entity):
         for sprite in self.world.sprites():
             x, y = int(x), int(y)
             sprite.move(x, y)
+        for i in ENEMIES:
+            for j in range(len(i.waypoints)):
+                x1, y1 = i.waypoints[j]
+                x1 += x
+                y1 += y
+                i.waypoints[j] = (x1, y1)
 
     def angle_to_mouse(self):
         """
@@ -360,12 +369,13 @@ class Enemy(Entity):
         self.radius = 16
         self.speed = 5
         self.ai = None
-        x, y = self.rect.center
-        self.waypoints = [(x, y), (x, y)]
+        self.waypoints = []
         self.on_the_way = False
+        ENEMIES.append(self)
 
     def update(self):
         self.gun.new_tick()
+        self.ai.attack()
         x1, y1, x2, y2 = *self.rect.center, *self.waypoints[0]
         x = 1 if x1 - x2 > 0 else -1
         y = 1 if y1 - y2 > 0 else -1
@@ -382,16 +392,22 @@ class Enemy(Entity):
         else:
             x, y = -1, 1
             # print(4)        # TODO адекватный АИ
+        ex, ey, hx, hy = *self.rect.center, *self.ai.hero.rect.center
+        can_see = check_obstacle((ex, ey), (hx, hy))
+        if can_see:
+            self.waypoints = [(ex, ey)]
+            self.on_the_way = False
+            self.new_tick()
+            return
         x, y = x * cos(radians(self.angle - 90)) * self.speed, y * sin(radians(self.angle - 90)) * self.speed
-        self.ai.attack()
-        self.move(*self.get_move_coordinates(x, y))
-        # print(self.rect.center, self.waypoints[0])
-        if self.rect.center == self.waypoints[0]:
+        if self.can_move_to(x, y):
+            self.move(x, y)
+        if self.rect.center[0] - self.waypoints[0][0] < 10 \
+                and self.rect.center[1] - self.waypoints[0][1] < 10:
             self.waypoints = self.waypoints[1:]
-            print(self.waypoints)
         if len(self.waypoints) == 0:
             self.waypoints.append((x1, y1))
-            self.waypoints.append((self.rect.center))
+            self.waypoints.append(self.rect.center)
             self.on_the_way = False
         self.new_tick()
 
