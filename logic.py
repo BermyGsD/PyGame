@@ -63,7 +63,7 @@ class AI:
                 resxy = [(ex, ey), (ex - d, hy)]
                 break
             delta += 1
-            if delta > 20:
+            if delta > 3:
                 return False
         self.enemy.waypoints.append((resxy[0][0], resxy[0][1]))
         self.enemy.waypoints.append((resxy[1][0], resxy[1][1]))

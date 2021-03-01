@@ -5,7 +5,7 @@ pygame.init()
 from game import Game
 import keys
 from constant import *
-from gui import show_pause
+from gui import *
 pygame.mixer.init()
 
 
@@ -23,6 +23,7 @@ if __name__ == '__main__':
     update_screen = False  # Обновление изображения в следующей итерации
     update_game = False    # Обновление игры в следующей итерации
     pause = True          # Внезапно, пауза
+    menu = Menu()
     # pygame.mouse.set_visible(False)
 
     while game.running:
@@ -32,6 +33,14 @@ if __name__ == '__main__':
             if e_type == pygame.QUIT:
                 exit(0)
 
+            if pause:
+                if e_type == pygame.MOUSEBUTTONDOWN:
+                    button = menu.check(event.pos)
+                    if button:
+                        if button == 'PLAY':
+                            pause = False
+                        elif button == 'QUIT':
+                            exit(0)
             if e_type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     pause = not pause
@@ -50,6 +59,6 @@ if __name__ == '__main__':
                 PLAYER.draw(SCREEN)
                 game.gui.update()
             else:
-               show_pause()
+                menu.show_pause()
             pygame.display.flip()
             update_screen = False
