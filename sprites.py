@@ -140,7 +140,7 @@ class Entity(SpriteObject):
         self.load_image(load_image(self.images[self.current]), self.angle)
         self.rect = self.image.get_rect()
         self.radius = 13                        # Радиус кружочка для столкновений
-        self.gun = Entity.Gun(owner=self, speed=50, scatter=0.05, damage=5)
+        self.gun = Entity.Gun(owner=self, speed=25, scatter=0.05, damage=5)
         # TODO Норм стандартное оружие
         self.update_sprite()
         self.mask = pygame.mask.from_surface(self.image)

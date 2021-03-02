@@ -1,5 +1,5 @@
 import pygame
-
+import os
 pygame.init()
 
 from game import Game
@@ -22,7 +22,8 @@ if __name__ == '__main__':
 
     update_screen = False  # Обновление изображения в следующей итерации
     update_game = False    # Обновление игры в следующей итерации
-    pause = True          # Внезапно, пауза
+    pause = True           # Внезапно, пауза
+    show_settings = False  # Внезапно, отображение настроек
     menu = Menu()
     # pygame.mouse.set_visible(False)
 
@@ -41,6 +42,14 @@ if __name__ == '__main__':
                             pause = False
                         elif button == 'QUIT':
                             exit(0)
+                        elif button == 'SETTINGS':
+                            show_settings = True
+                        elif button == 'BACK':
+                            show_settings = False
+                        elif button == 'NOT FULLSCREEN':
+                            open('fs.txt', 'w').write('True')
+                        elif button == 'FULLSCREEN':
+                            open('fs.txt', 'w').write('False')
             if e_type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     pause = not pause
@@ -52,13 +61,16 @@ if __name__ == '__main__':
                 update_game = True
 
         if update_screen:
+            SCREEN.fill((255, 255, 255))
             if not pause:
                 ALL_SPRITES.update()
-                SCREEN.fill((0, 0, 0))
                 ALL_SPRITES.draw(SCREEN)
                 PLAYER.draw(SCREEN)
                 game.gui.update()
             else:
-                menu.show_pause()
+                if not show_settings:
+                    menu.show_pause()
+                if show_settings:
+                    menu.show_settings()
             pygame.display.flip()
             update_screen = False

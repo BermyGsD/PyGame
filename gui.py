@@ -1,7 +1,6 @@
 from constant import *
 
 
-
 class GUI:
     def __init__(self, player):
         self.player = player
@@ -19,8 +18,11 @@ class GUI:
 class Menu:
     def __init__(self):
         self.buttons = []
+        self.fs = FULLSCREEN
+        self.size = SIZE
 
     def show_pause(self):
+        self.buttons = []
         font = pygame.font.Font(None, 50)
         lst = ["PLAY", "SCORE", "SETTINGS", "QUIT"]
         lst1 = []
@@ -29,8 +31,30 @@ class Menu:
             lst1.append(text)
         for i in range(len(lst1)):
             text = lst1[i]
-            text_x = SIZE[0] // 2 - text.get_width() // 2
-            text_y = SIZE[1] // 4 + i * SIZE[1] // (len(lst1) * 2) - text.get_height()
+            text_x = self.size[0] // 2 - text.get_width() // 2
+            text_y = self.size[1] // 4 + i * self.size[1] // (len(lst1) * 2) - text.get_height()
+            text_w = text.get_width()
+            text_h = text.get_height()
+            pygame.draw.rect(SCREEN, (0, 0, 0), (text_x - 10, text_y - 10,
+                                                 text_w + 20, text_h + 20))
+            self.buttons.append([(text_x - 10, text_y - 10, text_w + 20, text_h + 20), lst[i]])
+            SCREEN.blit(text, (text_x, text_y))
+
+    def show_settings(self):
+        self.buttons = []
+        font = pygame.font.Font(None, 50)
+        if self.fs:
+            lst = ["FULLSCREEN", "BACK"]
+        else:
+            lst = ["NOT FULLSCREEN", "BACK"]
+        lst1 = []
+        for i in range(len(lst)):
+            text = font.render(lst[i], True, (255, 255, 255))
+            lst1.append(text)
+        for i in range(len(lst1)):
+            text = lst1[i]
+            text_x = self.size[0] // 2 - text.get_width() // 2
+            text_y = self.size[1] // 4 + i * self.size[1] // (len(lst1) * 2) - text.get_height()
             text_w = text.get_width()
             text_h = text.get_height()
             pygame.draw.rect(SCREEN, (0, 0, 0), (text_x - 10, text_y - 10,

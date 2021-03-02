@@ -1,7 +1,7 @@
 import pygame
 
 
-FULLSCREEN = False
+FULLSCREEN = eval(open('fs.txt', 'r').read())
 
 if FULLSCREEN:
     video = pygame.display.Info()
