@@ -53,3 +53,13 @@ class Game:
     def update(self):
         ALL_SPRITES.update()
         self.gui.update()
+
+    def start(self, screen):
+        self.running = True
+        self.screen = screen
+        self.background = BackGround()
+        self.player = Player()
+        self.load_level()
+        ALL_SPRITES.draw(self.screen)
+        self.gui = GUI(self.player)
+        pygame.display.flip()

@@ -24,6 +24,7 @@ if __name__ == '__main__':
     update_game = False    # Обновление игры в следующей итерации
     pause = True           # Внезапно, пауза
     show_settings = False  # Внезапно, отображение настроек
+    game_over = False      # Триггер конца игры
     menu = Menu()
     # pygame.mouse.set_visible(False)
 
@@ -37,6 +38,7 @@ if __name__ == '__main__':
             if pause:
                 if e_type == pygame.MOUSEBUTTONDOWN:
                     button = menu.check(event.pos)
+                    button1 = game.gui.check(event.pos)
                     if button:
                         if button == 'PLAY':
                             pause = False
@@ -50,6 +52,18 @@ if __name__ == '__main__':
                             open('fs.txt', 'w').write('True')
                         elif button == 'FULLSCREEN':
                             open('fs.txt', 'w').write('False')
+                    if button1:
+                        if button1 == 'RESTART':
+                            for i in OBSTACLES.sprites():
+                                i.kill()
+                            for i in ENEMIES:
+                                i.kill()
+                            update_screen = False
+                            update_game = False
+                            pause = True
+                            show_settings = False
+                            game_over = False
+                            game.start(SCREEN)
             if e_type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     pause = not pause
@@ -60,17 +74,24 @@ if __name__ == '__main__':
             elif e_type == UPDATE_GAME_EVENT:
                 update_game = True
 
+        if len(ENTITIES) == 0 or game.player.hp <= 0:
+            game_over = True
+            pause = True
+
         if update_screen:
             SCREEN.fill((255, 255, 255))
-            if not pause:
+            if not pause and not game_over:
                 ALL_SPRITES.update()
                 ALL_SPRITES.draw(SCREEN)
                 PLAYER.draw(SCREEN)
                 game.gui.update()
             else:
-                if not show_settings:
-                    menu.show_pause()
-                if show_settings:
-                    menu.show_settings()
+                if not game_over:
+                    if not show_settings:
+                        menu.show_pause()
+                    if show_settings:
+                        menu.show_settings()
+                else:
+                    game.gui.show_game_over()
             pygame.display.flip()
             update_screen = False
