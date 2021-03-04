@@ -1,26 +1,31 @@
 import pygame
+import os
+pygame.init()
+
 from game import Game
 import keys
 from constant import *
+from gui import *
+pygame.mixer.init()
 
 
 if __name__ == '__main__':
-    pygame.init()
     pygame.display.flip()
     game = Game(SCREEN)
 
     # Event'ы и всё связанное с ними
     FPS = 16    # Миллисекунд между обновлениями
-    SPEED = 16  # Время между тиками игры (тоже миллисекунды)
 
     UPDATE_SCREEN_EVENT = pygame.USEREVENT + 1  # Эвент обновление экрана
     pygame.time.set_timer(UPDATE_SCREEN_EVENT, FPS)
     UPDATE_GAME_EVENT = pygame.USEREVENT + 2    # Эвент обновления игры
-    pygame.time.set_timer(UPDATE_GAME_EVENT, SPEED)
 
     update_screen = False  # Обновление изображения в следующей итерации
     update_game = False    # Обновление игры в следующей итерации
-    pause = False          # Внезапно, пауза
+    pause = True           # Внезапно, пауза
+    show_settings = False  # Внезапно, отображение настроек
+    game_over = False      # Триггер конца игры
+    menu = Menu()
     # pygame.mouse.set_visible(False)
 
     while game.running:
@@ -28,11 +33,40 @@ if __name__ == '__main__':
             e_type = event.type
 
             if e_type == pygame.QUIT:
-                print('aaa')
                 exit(0)
 
+            if pause:
+                if e_type == pygame.MOUSEBUTTONDOWN:
+                    button = menu.check(event.pos)
+                    button1 = game.gui.check(event.pos)
+                    if button:
+                        if button == 'PLAY':
+                            pause = False
+                        elif button == 'QUIT':
+                            exit(0)
+                        elif button == 'SETTINGS':
+                            show_settings = True
+                        elif button == 'BACK':
+                            show_settings = False
+                        elif button == 'NOT FULLSCREEN':
+                            open('fs.txt', 'w').write('True')
+                        elif button == 'FULLSCREEN':
+                            open('fs.txt', 'w').write('False')
+                    if button1:
+                        if button1 == 'RESTART':
+                            for i in OBSTACLES.sprites():
+                                i.kill()
+                            for i in ENEMIES:
+                                i.kill()
+                            update_screen = False
+                            update_game = False
+                            pause = True
+                            show_settings = False
+                            game_over = False
+                            game.start(SCREEN)
             if e_type == pygame.KEYDOWN:
-                pass
+                if event.key == pygame.K_ESCAPE:
+                    pause = not pause
 
             elif e_type == UPDATE_SCREEN_EVENT:
                 update_screen = True
@@ -40,13 +74,24 @@ if __name__ == '__main__':
             elif e_type == UPDATE_GAME_EVENT:
                 update_game = True
 
+        if len(ENTITIES) == 0 or game.player.hp <= 0:
+            game_over = True
+            pause = True
+
         if update_screen:
-            ALL_SPRITES.update()
-            SCREEN.fill((0, 0, 0))
-            ALL_SPRITES.draw(SCREEN)
-            game.gui.update()
+            SCREEN.fill((255, 255, 255))
+            if not pause and not game_over:
+                ALL_SPRITES.update()
+                ALL_SPRITES.draw(SCREEN)
+                PLAYER.draw(SCREEN)
+                game.gui.update()
+            else:
+                if not game_over:
+                    if not show_settings:
+                        menu.show_pause()
+                    if show_settings:
+                        menu.show_settings()
+                else:
+                    game.gui.show_game_over()
             pygame.display.flip()
             update_screen = False
-        """if update_game:
-            game.update()
-            update_game = False"""

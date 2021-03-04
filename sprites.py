@@ -1,13 +1,13 @@
 import pygame
 from os import path
 import keys
+from logic import check_obstacle
 from math import sin, cos, asin, degrees, radians
 from log import logging
 from random import random
 from constant import *
 
 
-@logging
 def load_image(name='images/error.png', angle=0.0):
     if not path.isfile(name):
         print(f"Файл с изображением '{name}' не найден")
@@ -21,13 +21,16 @@ def load_image(name='images/error.png', angle=0.0):
 class SpriteObject(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__(WORLD, ALL_SPRITES)
+        self.penable = False  # Пробиваем ли объект
 
     def move_center_to(self, x, y):
+        x, y = int(x), int(y)
         """Передвигает центр объекта в x, y"""
         self.rect.center = x, y
 
     def move(self, x, y):
         """передвигает объект на x, y"""
+        x, y = int(x), int(y)
         self.rect.x += x
         self.rect.y += y
 
@@ -39,20 +42,26 @@ class SpriteObject(pygame.sprite.Sprite):
         :return: None
         """
         self.image = pygame.transform.rotate(image, angle)
-        self.rect = self.image.get_rect()
+        try:                                            # памятник моей тупости: rect картинки изначально имеет 0, 0
+            center = self.rect.center                   # координаты, из-за чего враги смещались в нулевые координаты
+        except AttributeError:                          # после загрузки изображения (Urmipie)
+            self.rect = self.image.get_rect()
+        else:
+            self.rect = self.image.get_rect()
+            self.rect.center = center
 
     def collide(self, group: pygame.sprite.Group):
         return bool(pygame.sprite.spritecollide(self, group, False, pygame.sprite.collide_circle))
 
     def hit(self, damage):
         """Возвращает пробиваемость (Может ли пуля продолжить двигаться и нанесённый урон)"""
-        return False, 0
+        return self.penable, 0
 
 
 class Entity(SpriteObject):
     class Gun:
-        def __init__(self, owner, speed=50, scatter=0.005, damage=10, fire_range=10000, bullet_count=1,
-                     fire_speed=10, reload_time=30, magazine=30):
+        def __init__(self, owner, speed=25, scatter=0, damage=10, fire_range=10000, bullet_count=1,
+                     fire_speed=50, reload_time=75, magazine=15):
             """
             :param owner: сущность-отправитель
             :param speed: скорость пуль
@@ -65,17 +74,17 @@ class Entity(SpriteObject):
             :param magazine: количество патронов в магазине
             """
             self.bullet_count = bullet_count
+            self.shoot_sound = SOUND_MACHINE_GUN
             self.owner = owner
             self.speed = int(speed + (random() - 0.5) * speed * 0.5)
             self.scatter = scatter * 2      # Умножаю, потому что в рассчётах фактически делю на 2
             self.damage = damage
             self.entities = ENTITIES
-            self.tik = 0
-            self.reload_time = 0
+            self.tick = 0
+            self.reload_time = 1
             self.fire_speed = fire_speed
             self.reload_speed = reload_time
             self.magazine = 0
-            self.ammo = 100
             self.magazine_max = magazine
 
         def fire(self, coordinates, angle):  # TODO Доделать перезарядку и время между выстрелами
@@ -85,10 +94,10 @@ class Entity(SpriteObject):
             :param angle: угол направления пуль
             :return: None
             """
-            print(self.magazine)
-            if self.tik >= self.fire_speed and self.reload_time == 0 and self.magazine > 0:
-                self.tik = 0
+            if self.tick >= self.fire_speed and self.reload_time == 0 and self.magazine > 0:
+                self.tick = 0
                 self.magazine -= 1
+                self.shoot_sound.play()
                 for _ in range(self.bullet_count):
                     scatter = (random() - 0.5) * self.scatter
                     angle = radians(angle) + scatter
@@ -102,11 +111,7 @@ class Entity(SpriteObject):
         def reload(self):
             self.reload_time += 1
 
-        def add_to_ammo(self, count):
-            self.ammo += count
-
-
-        def new_tik(self):
+        def new_tick(self):
             if self.reload_time > 0:
                 self.reload_time += 1
                 if self.reload_time >= self.reload_speed:
@@ -114,16 +119,16 @@ class Entity(SpriteObject):
                     self.magazine = self.magazine_max
                 if self.reload_time >= self.reload_speed:
                     self.reload_speed = 0
-                    self.tik = 0
+                    self.tick = 0
             else:
-                self.tik += 1
-
+                self.tick += 1
 
     def __init__(self, images=['images/error.png'], hp: int = 100, speed: int = 10, acceleration: float = 1.5):
         super().__init__()
         ENTITIES.add(self)
         self.obstacles = OBSTACLES
         self.entities = ENTITIES
+        self.score = 0
         self.angle = 0                          # Угол наклона изображения
         self.tick = 0                           # Текущий тик для изображения
         self.current = 0                        # Текущий номер изображения
@@ -135,9 +140,10 @@ class Entity(SpriteObject):
         self.load_image(load_image(self.images[self.current]), self.angle)
         self.rect = self.image.get_rect()
         self.radius = 13                        # Радиус кружочка для столкновений
-        self.gun = Entity.Gun(owner=self, speed=50, scatter=1, damage=1)
+        self.gun = Entity.Gun(owner=self, speed=25, scatter=0.05, damage=5)
         # TODO Норм стандартное оружие
         self.update_sprite()
+        self.mask = pygame.mask.from_surface(self.image)
 
     def change_sprite(self, current=None):
         """Метод для изменения картинки на следующую. Берёт следующий по счёту спрайт из self.image"""
@@ -180,11 +186,32 @@ class Entity(SpriteObject):
         delta_y = -int(delta_y)
         self.move(delta_x, delta_y)
         ans = True
-        pygame.display.flip()
-        if self.collide(self.obstacles):
-            ans = False
+        # if self.collide(OBSTACLES):
+        for i in OBSTACLES:
+            if pygame.sprite.collide_mask(self, i):
+                ans = False
         self.move(-delta_x, -delta_y)
         return ans
+
+    def get_move_coordinates(self, delta_x, delta_y):
+        """
+        Возвращает координаты для движения
+        """
+        for case in (self.__check_step(delta_x, delta_y), self.__check_step(delta_x, 0), self.__check_step(0, delta_y)):
+            if case:
+                return case
+        return 0, 0
+
+    def __check_step(self, delta_x, delta_y):
+        """
+        Проверяет возможность прохода в нужную сторону и возвращает координаты, если может двигаться иначе False
+        """
+        while abs(delta_x) > 1 or abs(delta_y) > 1:
+            if self.can_move_to(int(delta_x), int(delta_y)):
+                return int(delta_x), int(delta_y)
+            delta_x /= 2
+            delta_y /= 2
+        return False
 
     def fire(self, angle):
         self.gun.fire(self.rect.center, angle)
@@ -192,9 +219,53 @@ class Entity(SpriteObject):
     def hit(self, damage):
         self.hp -= damage
         if self.hp <= 0:
+            x, y = self.rect.center
+            deadbody = SpriteObject()
+            deadbody.load_image(load_image('images\\enemy\\enemy_dead.png'))
+            deadbody.move_center_to(x, y)
+            deadbody.penable = True
+            ENTITIES.add(deadbody)
             self.kill()
-        print(damage)
         return False, damage
+
+    @staticmethod
+    def get_move_vector(x, y, radius=1):
+        """
+        Возвращает координаты, лежащие на определённом расстоянии и на одной линии с x, y и 0, 0
+        :param x: координата относительно игрока
+        :param y: вторая координата относительно игрока
+        :param radius: шаг игрока. Если не указано, берётся 1
+        :return: 2 float-овых значения координат
+        """
+        if x == y == 0:
+            return 0, 0
+        c = (x ** 2 + y ** 2) ** 0.5    # получаю расстояние между курсором и игроком
+        c = radius / c                  # получаю коофициент подобия
+        return x * c, y * c
+
+    def angle_to_coordinate(self, x_from, y_from, x_to, y_to):
+        """
+        Возвращает угол между двумя точками
+        :param x_from: откуда
+        :param y_from: откуда
+        :param x_to: куда
+        :param y_to: куда
+        :return: угол в градусах
+        """
+        x_relative, y_relative = -(x_from - x_to), y_from - y_to
+        x, y = self.get_move_vector(x_relative, y_relative)
+        angle = abs(degrees(asin(y)))
+        # if x > 0 and y > 0: angle += 0
+        if x > 0 > y:
+            angle = 360 - angle
+        if x < 0:
+            if y > 0:
+                angle = 180 - angle
+            else:
+                angle += 180
+        if x == 0 and y == -1:
+            angle = 270  # Это не костыль
+        return angle
 
 
 class Player(Entity):
@@ -208,14 +279,14 @@ class Player(Entity):
         super().__init__(images=Player.NO_GUN_IMAGES)
         WORLD.remove(self)
         self.world = WORLD
+        PLAYER.add(self)
         self.radius = 13
         self.rect = self.image.get_rect()
-        self.rect.x = 350
-        self.rect.y = 250
+        self.rect.center = PLAYER_COORDINATES
         self.gun = self.GUN_1
 
     def update(self):
-        self.gun.new_tik()
+        self.gun.new_tick()
         angle = self.angle_to_mouse()
         self.angle = radians(degrees(angle + 90 + 180))
         self.update_sprite()
@@ -254,13 +325,14 @@ class Player(Entity):
             angle_move = radians(angle_move)
             x_circle, y_circle = cos(angle_move), sin(angle_move)
             x_move, y_move = -x_circle * speed * x_core, y_circle * speed * x_core
-            while not self.can_move_to(x_move, y_move):
+            """while not self.can_move_to(x_move, y_move):
                 x_move //= 1.1
                 y_move //= 1.1
                 if x_move < 1 and y_move < 1:
                     x_move = y_move = 0
                     break
-            self.world_move(x_move, y_move)
+            self.world_move(x_move, y_move)"""
+            self.world_move(*self.get_move_coordinates(x_move, y_move))
             self.new_tick(a)
         if pygame.mouse.get_pressed()[0]:
             self.fire(angle)
@@ -272,21 +344,12 @@ class Player(Entity):
         for sprite in self.world.sprites():
             x, y = int(x), int(y)
             sprite.move(x, y)
-
-    @staticmethod
-    def get_move_vector(x, y, radius=1):
-        """
-        Возвращает координаты, лежащие на определённом расстоянии и на одной линии с x, y и 0, 0
-        :param x: координата относительно игрока
-        :param y: вторая координата относительно игрока
-        :param radius: шаг игрока. Если не указано, берётся 1
-        :return: 2 float-овых значения координат
-        """
-        if x == y == 0:
-            return 0, 0
-        c = (x ** 2 + y ** 2) ** 0.5    # получаю расстояние между курсором и игроком
-        c = radius / c                  # получаю коофициент подобия
-        return x * c, y * c
+        for i in ENEMIES:
+            for j in range(len(i.waypoints)):
+                x1, y1 = i.waypoints[j]
+                x1 += x
+                y1 += y
+                i.waypoints[j] = (x1, y1)
 
     def angle_to_mouse(self):
         """
@@ -294,30 +357,65 @@ class Player(Entity):
         :return: float градус до курсора
         """
         x_mouse, y_mouse = pygame.mouse.get_pos()
-        x_player, y_player = self.rect.center
-        x_relative, y_relative = -(x_player - x_mouse), y_player - y_mouse
-        x, y = self.get_move_vector(x_relative, y_relative)
-        angle = abs(degrees(asin(y)))
-        # if x > 0 and y > 0: angle += 0
-        if x > 0 > y:
-            angle = 360 - angle
-        if x < 0:
-            if y > 0:
-                angle = 180 - angle
-            else:
-                angle += 180
-        if x == 0 and y == -1:
-            angle = 270  # Это не костыль
-        return angle
+        return self.angle_to_coordinate(*self.rect.center, x_mouse, y_mouse)
 
 
 class Enemy(Entity):
+    IMAGES_1 = ['images/enemy/enemy_0.png', 'images/enemy/enemy_1.png', 'images/enemy/enemy_2.png']
+
     def __init__(self, x, y):
-        super().__init__()
-        self.rect.center = x, y
+        super().__init__(images=Enemy.IMAGES_1)
+        self.move_center_to(x, y)
+        self.radius = 16
+        self.speed = 5
+        self.ai = None
+        self.waypoints = [(x, y)]
+        self.on_the_way = False
+        ENEMIES.append(self)
+
+    def update(self):
+        self.gun.new_tick()
+        self.ai.attack()
+        x1, y1, x2, y2 = *self.rect.center, *self.waypoints[0]
+        x = 1 if x1 - x2 > 0 else -1
+        y = 1 if y1 - y2 > 0 else -1
+        self.angle = self.angle_to_coordinate(x1, y1, x2, y2) - 90
+        if x >= 0 and y >= 0:
+            x, y = -1, 1
+            # print(1)
+        elif x <= 0 and y >= 0:
+            x, y = -1, 1
+            # print(2)
+        elif x >= 0 and y >= 0:
+            # print(3)
+            x, y = -1, 1
+        else:
+            x, y = -1, 1
+            # print(4)
+        ex, ey, hx, hy = *self.rect.center, *self.ai.hero.rect.center
+        can_see = check_obstacle((ex, ey), (hx, hy))
+        if can_see:
+            self.waypoints = [(ex, ey)]
+            self.on_the_way = False
+            self.new_tick()
+            return
+        x, y = x * cos(radians(self.angle - 90)) * self.speed, y * sin(radians(self.angle - 90)) * self.speed
+        if self.can_move_to(x, y):
+            self.move(x, y)
+        if self.rect.center[0] - self.waypoints[0][0] < 10 \
+                and self.rect.center[1] - self.waypoints[0][1] < 10:
+            self.waypoints = self.waypoints[1:]
+        if len(self.waypoints) == 0:
+            self.ai.go_to_hero()
+            self.waypoints.append(self.rect.center)
+        self.new_tick()
+
+    def upload_ai(self, ai):
+        self.ai = ai
+
 
 class BackGround(SpriteObject):
-    def __init__(self,):
+    def __init__(self):
         super().__init__()
 
     def setup(self, img):
@@ -330,21 +428,13 @@ class Obstacle(SpriteObject):
         OBSTACLES.add(self)
         self.load_image(load_image(image))
         self.rect = self.image.get_rect()
+        # self.radius = 32
         self.move(x, y)
 
 
 class Wall(Obstacle):
     def __init__(self, x, y, image='images/environment/wall_1.png'):
         super().__init__(x=x, y=y, image=image)
-
-
-class GUI:
-    def __init__(self, player):
-        self.player = player
-        self.screen = SCREEN
-
-    def update(self):
-        pygame.draw.rect(self.screen, (120, 0, 0), ((0, 0), (self.player.hp, 10)))
 
 
 class Bullet(SpriteObject):
@@ -367,13 +457,20 @@ class Bullet(SpriteObject):
 
     def update(self):
         old = self.rect.center
+        if not (0 < old[0] < SIZE[0] and 0 < old[1] < SIZE[1]):
+            self.kill()
+            return None
         self.move(self.delta_x, self.delta_y)
         new = self.rect.center
         line = pygame.draw.line(SCREEN, (100, 100, 200), old, new, 3)
         objects = list(set(ENTITIES.sprites() + OBSTACLES.sprites()))
-        objects.remove(self.owner)
+        try:
+            objects.remove(self.owner)
+        except ValueError:
+            pass
         a = line.collidelistall(objects)
         objects = list(objects[i] for i in a)
+        # can_move = None
         if objects:
             old_x, old_y = old
             obj = objects.pop(0)
@@ -390,5 +487,6 @@ class Bullet(SpriteObject):
                     x_kill, y_kill, s_kill = x, y, s
                     kill = obj
             can_move, damage = kill.hit(self.damage)
+            self.owner.score += damage
             if not can_move:
                 self.kill()
