@@ -37,23 +37,23 @@ if __name__ == '__main__':
 
             if pause:
                 if e_type == pygame.MOUSEBUTTONDOWN:
-                    button = menu.check(event.pos)
-                    button1 = game.gui.check(event.pos)
-                    if button:
-                        if button == 'PLAY':
+                    button_main = menu.check(event.pos)
+                    button_restart = game.gui.check(event.pos)
+                    if button_main:
+                        if button_main == 'PLAY':
                             pause = False
-                        elif button == 'QUIT':
+                        elif button_main == 'QUIT':
                             exit(0)
-                        elif button == 'SETTINGS':
+                        elif button_main == 'SETTINGS':
                             show_settings = True
-                        elif button == 'BACK':
+                        elif button_main == 'BACK':
                             show_settings = False
-                        elif button == 'NOT FULLSCREEN':
+                        elif button_main == 'NOT FULLSCREEN':
                             open('fs.txt', 'w').write('True')
-                        elif button == 'FULLSCREEN':
+                        elif button_main == 'FULLSCREEN':
                             open('fs.txt', 'w').write('False')
-                    if button1:
-                        if button1 == 'RESTART':
+                    if button_restart:
+                        if button_restart == 'RESTART':
                             for i in OBSTACLES.sprites():
                                 i.kill()
                             for i in ENEMIES:
