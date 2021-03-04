@@ -33,9 +33,7 @@ class Game:
             for j in range(len(lvl_map[i])):
                 x, y = j * 64, i * 64
                 a = lvl_map[i][j]
-                if a == '.':
-                    pass
-                elif a == '#':
+                if a == '#':
                     Wall(x=x, y=y, image=wall_image)
                 elif a == '@':
                     x_add = - 32 + PLAYER_COORDINATES[0]
@@ -45,8 +43,6 @@ class Game:
                     f = Enemy(x, y)
                     f.upload_ai(AI(f, self.player))
                     f.load_image(load_image(name=Enemy.IMAGES_1[0]))
-                else:
-                    pass
         for sprite in WORLD.sprites():
             sprite.move(*player_coordinates)
 
